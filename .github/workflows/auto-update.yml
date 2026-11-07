@@ -63,7 +63,8 @@ jobs:
           if [ -z "$SIGNING_KEY_PASS" ]; then
             echo "::error::Нет секрета SIGNING_KEY_PASS (Settings → Secrets and variables → Actions)"; exit 1
           fi
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in app/kinoshka.keystore.enc -out app/kinoshka.keystore -pass env:SIGNING_KEY_PASS
+          KEY_PASS=$(printf %s "$SIGNING_KEY_PASS" | tr -d '[:space:]'); export KEY_PASS
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in app/kinoshka.keystore.enc -out app/kinoshka.keystore -pass env:KEY_PASS
 
       - name: Build
         if: steps.check.outputs.changed == 'true'
