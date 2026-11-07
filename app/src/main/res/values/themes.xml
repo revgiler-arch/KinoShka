@@ -1,0 +1,11 @@
+<resources>
+    <style name="Theme.KinoShka" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#FF0E0D12</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+    <style name="Theme.KinoShka.Player" parent="Theme.KinoShka">
+        <item name="android:windowBackground">#FF000000</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+</resources>
