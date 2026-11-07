@@ -7,7 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 /**
- * Ищет фильм на RuTube и YouTube, но берёт только каналы правообладателей:
+ * Ищет фильм на RuTube, YouTube и VK Видео, но берёт только каналы правообладателей:
  * из белого списка или с официальной отметкой площадки (если это включено).
  * Трейлеры, обзоры и нарезки отсекаются по длительности и названию.
  */
@@ -26,7 +26,7 @@ class SourceFinder(private val prefs: Prefs?) {
             append(if (movie.isSeries) " сериал" else " фильм")
         }
         val errors = java.util.Collections.synchronizedList(mutableListOf<String>())
-        val (rt, yt) = coroutineScope {
+        val (rt, yt, vk) = coroutineScope {
             val rt = async {
                 runCatching { Rutube.search(query) }
                     .onFailure { errors += "RuTube: ${it.message}" }
@@ -39,9 +39,15 @@ class SourceFinder(private val prefs: Prefs?) {
                     .getOrDefault(emptyList())
                     .mapNotNull { judge(movie, Platform.YOUTUBE, it.id, it.title, it.channel, it.durationSec, it.thumb, it.verified) }
             }
-            rt.await() to yt.await()
+            val vk = async {
+                runCatching { VkVideo.search(query) }
+                    .onFailure { errors += "VK: ${it.message}" }
+                    .getOrDefault(emptyList())
+                    .mapNotNull { judge(movie, Platform.VK, it.id, it.title, it.channel, it.durationSec, it.thumb, it.verified) }
+            }
+            Triple(rt.await(), yt.await(), vk.await())
         }
-        val list = (rt + yt).sortedByDescending { it.score }.distinctBy { it.platform to it.videoId }.take(8)
+        val list = (rt + yt + vk).sortedByDescending { it.score }.distinctBy { it.platform to it.videoId }.take(8)
         // Пустой результат тоже кешируем, но только если обе площадки ответили без ошибок
         if (list.isNotEmpty() || errors.isEmpty()) prefs?.saveSources(movie.id, list)
         Result(list, errors)
@@ -95,7 +101,7 @@ class SourceFinder(private val prefs: Prefs?) {
             }
         }
         if (names.any { t.startsWith(it) }) score += 10
-        if (platform == Platform.RUTUBE) score += 2 // HLS: качество подстраивается под сеть
+        if (platform != Platform.YOUTUBE) score += 2 // HLS: качество подстраивается под сеть
 
         return Source(platform, id, title, channel, durationSec, thumb, official, score)
     }

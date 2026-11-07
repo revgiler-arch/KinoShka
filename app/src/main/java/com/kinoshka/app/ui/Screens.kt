@@ -340,7 +340,7 @@ private fun DetailsScreen(vm: MainVm, movie: Movie) {
                     Load.Loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(color = Kino.Accent, modifier = Modifier.size(24.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text("Ищем у правообладателей на RuTube и YouTube…", color = Kino.TextDim)
+                        Text("Ищем у правообладателей на YouTube, VK Видео и RuTube…", color = Kino.TextDim)
                     }
                     is Load.Fail -> Text(s.message, color = Kino.Bad)
                     is Load.Ok -> {
@@ -424,13 +424,14 @@ private fun SourceRow(src: Source, onClick: () -> Unit) {
                 color = Kino.TextDim, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
+        val (tag, color) = when (src.platform) {
+            Platform.RUTUBE -> "RT" to Color(0xFF7B61FF)
+            Platform.YOUTUBE -> "YT" to Color(0xFFE5484D)
+            Platform.VK -> "VK" to Color(0xFF2787F5)
+        }
         Text(
-            if (src.platform == Platform.RUTUBE) "RT" else "YT",
-            color = Kino.OnAccent, fontWeight = FontWeight.Black, fontSize = 12.sp,
-            modifier = Modifier.background(
-                if (src.platform == Platform.RUTUBE) Color(0xFF7B61FF) else Color(0xFFE5484D),
-                RoundedCornerShape(5.dp),
-            ).padding(horizontal = 6.dp, vertical = 2.dp),
+            tag, color = Color.White, fontWeight = FontWeight.Black, fontSize = 12.sp,
+            modifier = Modifier.background(color, RoundedCornerShape(5.dp)).padding(horizontal = 6.dp, vertical = 2.dp),
         )
     }
 }

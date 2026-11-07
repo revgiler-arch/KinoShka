@@ -30,22 +30,6 @@ class ProbeTest {
         )
         val finder = SourceFinder(null)
         val out = StringBuilder()
-        for (u in listOf(
-            "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("Кин-дза-дза", "UTF-8"),
-            "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("Кин-дза-дза", "UTF-8") + "&format=json",
-            "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("новости", "UTF-8"),
-            "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("мосфильм", "UTF-8"),
-            "https://rutube.ru/api/video/?query=" + java.net.URLEncoder.encode("мосфильм", "UTF-8"),
-        )) {
-            val req = okhttp3.Request.Builder().url(u).header("User-Agent", OkDownloader.USER_AGENT)
-                .header("Referer", "https://rutube.ru/").header("Accept", "application/json").build()
-            val line = runCatching {
-                com.kinoshka.app.net.Http.client.newCall(req).execute().use { r ->
-                    "HTTP ${r.code} ${r.header("Content-Type")} " + (r.body?.string() ?: "").take(700).replace('\n', ' ')
-                }
-            }.getOrElse { "EXC ${it.message}" }
-            out.append("RAW $u\n   $line\n")
-        }
         for (m in movies) {
             val q = "${m.name} ${m.year} фильм"
             out.append("=== ${m.name} (${m.year})\n")

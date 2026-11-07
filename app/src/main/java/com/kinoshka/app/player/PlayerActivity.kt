@@ -40,6 +40,7 @@ import com.kinoshka.app.data.Movie
 import com.kinoshka.app.data.Platform
 import com.kinoshka.app.data.Rutube
 import com.kinoshka.app.data.Source
+import com.kinoshka.app.data.VkVideo
 import com.kinoshka.app.data.YouTube
 import com.kinoshka.app.net.OkDownloader
 import kotlinx.coroutines.Dispatchers
@@ -167,6 +168,16 @@ class PlayerActivity : ComponentActivity() {
             val http = DefaultHttpDataSource.Factory()
                 .setUserAgent(OkDownloader.USER_AGENT)
                 .setDefaultRequestProperties(Rutube.HEADERS)
+                .setAllowCrossProtocolRedirects(true)
+            HlsMediaSource.Factory(http).createMediaSource(
+                MediaItem.Builder().setUri(url).setMimeType(MimeTypes.APPLICATION_M3U8).build(),
+            )
+        }
+        Platform.VK -> {
+            val url = VkVideo.playlistUrl(source.videoId)
+            val http = DefaultHttpDataSource.Factory()
+                .setUserAgent(OkDownloader.USER_AGENT)
+                .setDefaultRequestProperties(VkVideo.HEADERS)
                 .setAllowCrossProtocolRedirects(true)
             HlsMediaSource.Factory(http).createMediaSource(
                 MediaItem.Builder().setUri(url).setMimeType(MimeTypes.APPLICATION_M3U8).build(),

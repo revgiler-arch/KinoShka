@@ -64,7 +64,7 @@ data class Movie(
 }
 
 /** Где можно посмотреть фильм. */
-enum class Platform(val title: String) { RUTUBE("RuTube"), YOUTUBE("YouTube") }
+enum class Platform(val title: String) { RUTUBE("RuTube"), YOUTUBE("YouTube"), VK("VK Видео") }
 
 /** Найденное видео с фильмом на одной из площадок. */
 data class Source(
@@ -80,6 +80,7 @@ data class Source(
     val pageUrl get() = when (platform) {
         Platform.RUTUBE -> "https://rutube.ru/video/$videoId/"
         Platform.YOUTUBE -> "https://www.youtube.com/watch?v=$videoId"
+        Platform.VK -> "https://vkvideo.ru/video$videoId"
     }
 
     fun toJson(): JSONObject = JSONObject()
