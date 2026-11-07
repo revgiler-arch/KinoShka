@@ -58,7 +58,7 @@ class SourceFinder(private val prefs: Prefs?) {
         thumb: String?,
         official: Boolean,
     ): Source? {
-        val inWhitelist = whitelist.any { channel.contains(it, ignoreCase = true) }
+        val inWhitelist = inWhitelist(channel, official)
         if (!inWhitelist && !(official && trustVerified)) return null
 
         val t = norm(title)
@@ -77,6 +77,8 @@ class SourceFinder(private val prefs: Prefs?) {
         if (!movie.isSeries) {
             val min = if (expected > 0) (expected * 0.6).toLong().coerceAtMost(50 * 60) else 40 * 60L
             if (durationSec in 1 until min) return null
+            // Сильно длиннее фильма — скорее сборник или разбор (важно для коротких мультфильмов)
+            if (expected > 0 && durationSec > expected * 2 + 10 * 60) return null
         } else if (durationSec in 1 until 15 * 60) return null
 
         var score = 0
@@ -98,11 +100,25 @@ class SourceFinder(private val prefs: Prefs?) {
         return Source(platform, id, title, channel, durationSec, thumb, official, score)
     }
 
+    /**
+     * Канал из белого списка: точное совпадение названия или название вида «Киноконцерн "Мосфильм"».
+     * Частичное совпадение («СОЮЗМУЛЬТФИЛЬМ И НЕ ТОЛЬКО») принимаем, только если у канала
+     * есть официальная отметка площадки — иначе это обычно чужой канал-перезалив.
+     */
+    private fun inWhitelist(channel: String, official: Boolean): Boolean {
+        val c = norm(channel)
+        return whitelist.map(::norm).filter { it.isNotEmpty() }.any { w ->
+            c == w || c.endsWith(" $w") || c.startsWith("$w ") && c.length - w.length <= 12 ||
+                (official && c.contains(w))
+        }
+    }
+
     companion object {
         private val BAD_WORDS = listOf(
             "трейлер", "trailer", "тизер", "teaser", "обзор", "review", "фрагмент", "отрывок",
             "нарезка", "за кадром", "как снимали", "making of", "реакция", "разбор", "киногрехи",
-            "интервью", "клип", "саундтрек", "soundtrack", "shorts",
+            "интервью", "клип", "саундтрек", "soundtrack", "shorts", "о чем", "смысл",
+            "на самом деле", "тифлокомментар", "пародия", "сборник", "все серии подряд",
         )
 
         fun norm(s: String): String = s.lowercase()

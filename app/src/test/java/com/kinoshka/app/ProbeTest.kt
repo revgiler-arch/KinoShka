@@ -33,7 +33,9 @@ class ProbeTest {
         for (u in listOf(
             "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("Кин-дза-дза", "UTF-8"),
             "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("Кин-дза-дза", "UTF-8") + "&format=json",
-            "https://rutube.ru/api/video/person/1069744/?page=1",
+            "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("новости", "UTF-8"),
+            "https://rutube.ru/api/search/video/?query=" + java.net.URLEncoder.encode("мосфильм", "UTF-8"),
+            "https://rutube.ru/api/video/?query=" + java.net.URLEncoder.encode("мосфильм", "UTF-8"),
         )) {
             val req = okhttp3.Request.Builder().url(u).header("User-Agent", OkDownloader.USER_AGENT)
                 .header("Referer", "https://rutube.ru/").header("Accept", "application/json").build()
