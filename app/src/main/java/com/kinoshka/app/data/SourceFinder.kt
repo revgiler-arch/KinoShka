@@ -11,12 +11,14 @@ import kotlin.math.abs
  * из белого списка или с официальной отметкой площадки (если это включено).
  * Трейлеры, обзоры и нарезки отсекаются по длительности и названию.
  */
-class SourceFinder(private val prefs: Prefs) {
+class SourceFinder(private val prefs: Prefs?) {
+    private val whitelist get() = prefs?.whitelist ?: Prefs.DEFAULT_WHITELIST
+    private val trustVerified get() = prefs?.trustVerified ?: true
 
     class Result(val sources: List<Source>, val errors: List<String>)
 
     suspend fun find(movie: Movie, force: Boolean = false): Result = withContext(Dispatchers.IO) {
-        if (!force) prefs.cachedSources(movie.id)?.let { return@withContext Result(it, emptyList()) }
+        if (!force) prefs?.cachedSources(movie.id)?.let { return@withContext Result(it, emptyList()) }
 
         val query = buildString {
             append(movie.name)
@@ -41,7 +43,7 @@ class SourceFinder(private val prefs: Prefs) {
         }
         val list = (rt + yt).sortedByDescending { it.score }.distinctBy { it.platform to it.videoId }.take(8)
         // Пустой результат тоже кешируем, но только если обе площадки ответили без ошибок
-        if (list.isNotEmpty() || errors.isEmpty()) prefs.saveSources(movie.id, list)
+        if (list.isNotEmpty() || errors.isEmpty()) prefs?.saveSources(movie.id, list)
         Result(list, errors)
     }
 
@@ -56,8 +58,8 @@ class SourceFinder(private val prefs: Prefs) {
         thumb: String?,
         official: Boolean,
     ): Source? {
-        val inWhitelist = prefs.whitelist.any { channel.contains(it, ignoreCase = true) }
-        if (!inWhitelist && !(official && prefs.trustVerified)) return null
+        val inWhitelist = whitelist.any { channel.contains(it, ignoreCase = true) }
+        if (!inWhitelist && !(official && trustVerified)) return null
 
         val t = norm(title)
         if (BAD_WORDS.any { t.contains(it) }) return null
