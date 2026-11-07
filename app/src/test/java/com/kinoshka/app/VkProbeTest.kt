@@ -43,6 +43,13 @@ class VkProbeTest {
                 if (oid != null && firstOid == null) firstOid = oid
             }
         }
+        val (_, page) = get("https://vkvideo.ru/@mosfilm")
+        for (kw in listOf("anonym", "client_id", "api.vkvideo", "access_token", "\"oid\"", "owner_id", "group_id", "mosfilm")) {
+            Regex(Regex.escape(kw)).findAll(page).take(3).forEach { m ->
+                val a = (m.range.first - 120).coerceAtLeast(0); val b = (m.range.last + 160).coerceAtMost(page.length)
+                out.append("KW[$kw] ").append(page.substring(a, b).replace('\n', ' ')).append('\n')
+            }
+        }
         val oid = firstOid
         if (oid != null) {
             val (c, b) = post(mapOf("act" to "load_videos_silent", "offset" to "0", "oid" to oid, "section" to "all"))
