@@ -65,7 +65,9 @@ class SourceFinder(private val prefs: Prefs?) {
         official: Boolean,
     ): Source? {
         val inWhitelist = inWhitelist(channel, official)
-        if (!inWhitelist && !(official && trustVerified)) return null
+        // Галочку VK получают и частные лица — там доверяем только белому списку
+        val trusted = official && trustVerified && platform != Platform.VK
+        if (!inWhitelist && !trusted) return null
 
         val t = norm(title)
         if (BAD_WORDS.any { t.contains(it) }) return null
