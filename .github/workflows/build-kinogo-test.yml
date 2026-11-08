@@ -1,0 +1,33 @@
+name: Build KinoGo test APK
+
+# Только для тестовой ветки: APK лежит в артефактах запуска, релиз latest не трогаем.
+on:
+  push:
+    branches: [kinogo-webview-test]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Decrypt signing key
+        env:
+          SIGNING_KEY_PASS: ${{ secrets.SIGNING_KEY_PASS }}
+        run: |
+          if [ -z "$SIGNING_KEY_PASS" ]; then
+            echo "::error::Нет секрета SIGNING_KEY_PASS"; exit 1
+          fi
+          KEY_PASS=$(printf %s "$SIGNING_KEY_PASS" | tr -d '[:space:]'); export KEY_PASS
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in app/kinoshka.keystore.enc -out app/kinoshka.keystore -pass env:KEY_PASS
+      - run: chmod +x gradlew && ./gradlew assembleRelease --stacktrace
+      - run: cp app/build/outputs/apk/release/*.apk KinoShka-KinoGo-test.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KinoShka-KinoGo-test-apk
+          path: KinoShka-KinoGo-test.apk
