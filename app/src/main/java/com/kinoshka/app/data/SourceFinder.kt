@@ -7,18 +7,16 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 /**
- * Ищет фильм на RuTube, YouTube и VK Видео, но берёт только каналы правообладателей:
+ * Ищет фильм на RuTube и YouTube, но берёт только каналы правообладателей:
  * из белого списка или с официальной отметкой площадки (если это включено).
  * Трейлеры, обзоры и нарезки отсекаются по длительности и названию.
  */
-class SourceFinder(private val prefs: Prefs?) {
-    private val whitelist get() = prefs?.whitelist ?: Prefs.DEFAULT_WHITELIST
-    private val trustVerified get() = prefs?.trustVerified ?: true
+class SourceFinder(private val prefs: Prefs) {
 
     class Result(val sources: List<Source>, val errors: List<String>)
 
     suspend fun find(movie: Movie, force: Boolean = false): Result = withContext(Dispatchers.IO) {
-        if (!force) prefs?.cachedSources(movie.id)?.let { return@withContext Result(it, emptyList()) }
+        if (!force) prefs.cachedSources(movie.id)?.let { return@withContext Result(it, emptyList()) }
 
         val query = buildString {
             append(movie.name)
@@ -26,7 +24,7 @@ class SourceFinder(private val prefs: Prefs?) {
             append(if (movie.isSeries) " сериал" else " фильм")
         }
         val errors = java.util.Collections.synchronizedList(mutableListOf<String>())
-        val (rt, yt, vk) = coroutineScope {
+        val (rt, yt) = coroutineScope {
             val rt = async {
                 runCatching { Rutube.search(query) }
                     .onFailure { errors += "RuTube: ${it.message}" }
@@ -39,17 +37,11 @@ class SourceFinder(private val prefs: Prefs?) {
                     .getOrDefault(emptyList())
                     .mapNotNull { judge(movie, Platform.YOUTUBE, it.id, it.title, it.channel, it.durationSec, it.thumb, it.verified) }
             }
-            val vk = async {
-                runCatching { VkVideo.search(query) }
-                    .onFailure { errors += "VK: ${it.message}" }
-                    .getOrDefault(emptyList())
-                    .mapNotNull { judge(movie, Platform.VK, it.id, it.title, it.channel, it.durationSec, it.thumb, it.verified) }
-            }
-            Triple(rt.await(), yt.await(), vk.await())
+            rt.await() to yt.await()
         }
-        val list = (rt + yt + vk).sortedByDescending { it.score }.distinctBy { it.platform to it.videoId }.take(8)
+        val list = (rt + yt).sortedByDescending { it.score }.distinctBy { it.platform to it.videoId }.take(8)
         // Пустой результат тоже кешируем, но только если обе площадки ответили без ошибок
-        if (list.isNotEmpty() || errors.isEmpty()) prefs?.saveSources(movie.id, list)
+        if (list.isNotEmpty() || errors.isEmpty()) prefs.saveSources(movie.id, list)
         Result(list, errors)
     }
 
@@ -64,10 +56,8 @@ class SourceFinder(private val prefs: Prefs?) {
         thumb: String?,
         official: Boolean,
     ): Source? {
-        val inWhitelist = inWhitelist(channel, official)
-        // Галочку VK получают и частные лица — там доверяем только белому списку
-        val trusted = official && trustVerified && platform != Platform.VK
-        if (!inWhitelist && !trusted) return null
+        val inWhitelist = prefs.whitelist.any { channel.contains(it, ignoreCase = true) }
+        if (!inWhitelist && !(official && prefs.trustVerified)) return null
 
         val t = norm(title)
         if (BAD_WORDS.any { t.contains(it) }) return null
@@ -85,8 +75,6 @@ class SourceFinder(private val prefs: Prefs?) {
         if (!movie.isSeries) {
             val min = if (expected > 0) (expected * 0.6).toLong().coerceAtMost(50 * 60) else 40 * 60L
             if (durationSec in 1 until min) return null
-            // Сильно длиннее фильма — скорее сборник или разбор (важно для коротких мультфильмов)
-            if (expected > 0 && durationSec > expected * 2 + 10 * 60) return null
         } else if (durationSec in 1 until 15 * 60) return null
 
         var score = 0
@@ -103,30 +91,16 @@ class SourceFinder(private val prefs: Prefs?) {
             }
         }
         if (names.any { t.startsWith(it) }) score += 10
-        if (platform != Platform.YOUTUBE) score += 2 // HLS: качество подстраивается под сеть
+        if (platform == Platform.RUTUBE) score += 2 // HLS: качество подстраивается под сеть
 
         return Source(platform, id, title, channel, durationSec, thumb, official, score)
-    }
-
-    /**
-     * Канал из белого списка: точное совпадение названия или название вида «Киноконцерн "Мосфильм"».
-     * Частичное совпадение («СОЮЗМУЛЬТФИЛЬМ И НЕ ТОЛЬКО») принимаем, только если у канала
-     * есть официальная отметка площадки — иначе это обычно чужой канал-перезалив.
-     */
-    private fun inWhitelist(channel: String, official: Boolean): Boolean {
-        val c = norm(channel)
-        return whitelist.map(::norm).filter { it.isNotEmpty() }.any { w ->
-            c == w || c.endsWith(" $w") || c.startsWith("$w ") && c.length - w.length <= 12 ||
-                (official && c.contains(w))
-        }
     }
 
     companion object {
         private val BAD_WORDS = listOf(
             "трейлер", "trailer", "тизер", "teaser", "обзор", "review", "фрагмент", "отрывок",
             "нарезка", "за кадром", "как снимали", "making of", "реакция", "разбор", "киногрехи",
-            "интервью", "клип", "саундтрек", "soundtrack", "shorts", "о чем", "смысл",
-            "на самом деле", "тифлокомментар", "пародия", "сборник", "все серии подряд",
+            "интервью", "клип", "саундтрек", "soundtrack", "shorts",
         )
 
         fun norm(s: String): String = s.lowercase()

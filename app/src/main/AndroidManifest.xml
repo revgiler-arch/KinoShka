@@ -33,6 +33,12 @@
         </activity>
 
         <activity
+            android:name=".KinoGoActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode"
+            android:theme="@style/Theme.KinoShka" />
+
+        <activity
             android:name=".player.PlayerActivity"
             android:exported="false"
             android:screenOrientation="sensorLandscape"
