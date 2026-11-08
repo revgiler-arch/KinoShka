@@ -100,6 +100,7 @@ fun KinoApp(vm: MainVm) {
 
 @Composable
 private fun HomeScreen(vm: MainVm) {
+    val ctx = LocalContext.current
     val firstFocus = remember { FocusRequester() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp)) {
         item {
