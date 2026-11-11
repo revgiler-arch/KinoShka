@@ -12,8 +12,8 @@ android {
         applicationId = "com.kinoshka.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.2.3"
+        versionCode = 4
+        versionName = "0.2.4"
     }
 
     // Один ключ для всех сборок, чтобы обновления ставились поверх.
@@ -73,7 +73,7 @@ android {
 
 dependencies {
     // Извлечение потоков YouTube (та же версия, что у NewPipe и «Волны»)
-    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.0")
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.1")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
